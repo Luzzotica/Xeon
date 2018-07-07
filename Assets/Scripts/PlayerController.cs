@@ -18,6 +18,15 @@ public class PlayerController : MonoBehaviour
     //FixedUpdate is called at a fixed interval and is independent of frame rate. Put physics code here.
     void FixedUpdate()
     {
+        // Get the mouse from the input
+        Vector3 mouseScreen = Input.mousePosition;
+
+        // Convert it to world point
+        Vector3 mouse = Camera.main.ScreenToWorldPoint(mouseScreen);
+
+        // Calculate rotation to point
+        transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(mouse.y - transform.position.y, mouse.x - transform.position.x) * Mathf.Rad2Deg - 90);
+
         //Store the current horizontal input in the float moveHorizontal.
         float moveHorizontal = Input.GetAxis("Horizontal");
 
@@ -29,5 +38,6 @@ public class PlayerController : MonoBehaviour
 
         //Call the AddForce function of our Rigidbody2D rb2d supplying movement multiplied by speed to move our player.
         rb2d.AddForce(movement * speed);
+        print(rb2d.velocity);
     }
 }
