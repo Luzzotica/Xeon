@@ -16,11 +16,22 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb2d;       //Store a reference to the Rigidbody2D component required to use 2D Physics.
 
+    private bool isClient = false;
+
     // Use this for initialization
     void Start()
     {
         //Get and store a reference to the Rigidbody2D component so that we can access it.
         rb2d = GetComponent<Rigidbody2D>();
+    }
+
+    public void setIsClient(bool isClient)
+    {
+        // Change the client
+        this.isClient = isClient;
+
+        // Get the camera for the player
+        playerCamera = Camera.main;
 
         // Start the camera with an initial offset
         cameraOffset = playerCamera.transform.position;
@@ -28,6 +39,12 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        // If we are not the client, stop
+        if (!isClient)
+        {
+            return;
+        }
+
         // Handle camera movement
         handleCamera();
 
@@ -38,6 +55,12 @@ public class PlayerController : MonoBehaviour
     //FixedUpdate is called at a fixed interval and is independent of frame rate. Put physics code here.
     void FixedUpdate()
     {
+        // If we are not the client, stop
+        if (!isClient)
+        {
+            return;
+        }
+
         // Handle rotation before everything
         handleRotation();
 

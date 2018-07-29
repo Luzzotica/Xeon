@@ -14,8 +14,9 @@ public class Bullet : MonoBehaviour
         Vector3 velocity3D = transform.up * bulletSpeed;
         GetComponent<Rigidbody2D>().velocity = velocity3D;
 
+
         // Destroy ourselves after a few seconds
-        Destroy(this, 5.0f);
+        Destroy(this.gameObject, 5.0f);
 	}
 	
 	// Update is called once per frame
