@@ -10,6 +10,7 @@ public class Player
     public string playerName;
     public GameObject avatar;
     public int connectionID;
+
 }
 
 public class Client : MonoBehaviour 
@@ -137,21 +138,35 @@ public class Client : MonoBehaviour
     private void OnAskPosition(string[] data)
     {
         // Loop through all of the data
-        for (int i = 1; i < data.Length - 1; i++)
+        for (int i = 1; i < data.Length; i++)
         {
-            // Data structure: ConnectionID%x%y
+            // Data structure: ConnectionID%posX%posY%velX%velY%rotZ%rotW
             string[] playerData = data[i].Split('%');
 
             // Prevent the server from updating us
             if (this.clientID != int.Parse(playerData[0]))
             {
-                // Create a new position from the data
+                // Parse through data
+                /// Get position
                 Vector3 position = Vector3.zero;
                 position.x = float.Parse(playerData[1]);
                 position.y = float.Parse(playerData[2]);
 
-                // Update the player avatar
-                players[int.Parse(playerData[0])].avatar.transform.position = position;
+                // Get speed
+                Vector2 velocity = Vector2.zero;
+                velocity.x = float.Parse(playerData[3]);
+                velocity.y = float.Parse(playerData[4]);
+
+                // Get rotation
+                Quaternion rotation = Quaternion.identity;
+                rotation.z = float.Parse(playerData[5]);
+                rotation.w = float.Parse(playerData[6]);
+
+                // Update the player avatar with data found
+                GameObject playerAvatar = players[int.Parse(playerData[0])].avatar;
+                playerAvatar.transform.position = position;
+                playerAvatar.transform.rotation = rotation;
+                playerAvatar.GetComponent<Rigidbody2D>().velocity = velocity;
             }
         }
 
@@ -160,7 +175,12 @@ public class Client : MonoBehaviour
         {
             // Send our position to the server
             Vector3 myPosition = players[this.clientID].avatar.transform.position;
-            string positionM = "MYPOSITION|" + myPosition.x.ToString() + "|" + myPosition.y.ToString() + "|" + players[this.clientID].playerName;
+            Vector2 myVelocity = players[this.clientID].avatar.GetComponent<Rigidbody2D>().velocity;
+            Quaternion myRotation = players[this.clientID].avatar.transform.rotation;
+            // DATA STRUCTURE: posX|posY|velX|velY|rotZ|rotW
+            string positionM = "MYPOSITION|" + myPosition.x.ToString() + "|" + myPosition.y.ToString() + "|" 
+                                                         + myVelocity.x.ToString() + "|" + myVelocity.y.ToString() + "|"
+                                                         + myRotation.z.ToString() + "|" + myRotation.w.ToString();
             Send(positionM, unreliableChannel);
         }
     }

@@ -64,6 +64,8 @@ public class PlayerController : MonoBehaviour
         // Handle rotation before everything
         handleRotation();
 
+        //print("X: " + transform.rotation.x + " Y: " + transform.rotation.y + " Z: " + transform.rotation.z + " W: " + transform.rotation.w);
+
         // Handle movement based on input
         handleMovement();
     }

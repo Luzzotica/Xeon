@@ -9,6 +9,8 @@ public class ServerClient
     public int connectionID;
     public string playerName;
     public Vector2 playerPosition;
+    public Vector2 playerVelocity;
+    public Quaternion playerRotation;
 }
 
 public class Server : MonoBehaviour 
@@ -88,7 +90,7 @@ public class Server : MonoBehaviour
                         OnNameIs(connectionID, splitData[1]);
                         break;
                     case "MYPOSITION":
-                        OnMyPosition(connectionID, float.Parse(splitData[1]), float.Parse(splitData[2]));
+                        OnMyPosition(connectionID, splitData);
                         break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
@@ -116,7 +118,11 @@ public class Server : MonoBehaviour
             string positionRequest = "ASKPOSITION|";
             foreach (ServerClient sc in clients)
             {
-                positionRequest += sc.connectionID + "%" + sc.playerPosition.x + "%" + sc.playerPosition.y + "|";
+                // DATA STRUCTURE: ConnID%posX%posY%velX%velY%rotZ%rotW
+                positionRequest += sc.connectionID + 
+                                     "%" + sc.playerPosition.x + "%" + sc.playerPosition.y + 
+                                     "%" + sc.playerVelocity.x + "%" + sc.playerVelocity.y +
+                                     "%" + sc.playerRotation.z + "%" + sc.playerRotation.w + "|";
             }
             positionRequest = positionRequest.Trim('|');
 
@@ -156,19 +162,31 @@ public class Server : MonoBehaviour
         Send("DC|" + connID, reliableChannel, clients);
     }
 
-    private void OnNameIs(int connId, string playerName)
+    private void OnNameIs(int connID, string playerName)
     {
-        // Link the name to the connection Id
-        clients.Find(x => x.connectionID == connId).playerName = playerName;
+        // Link the name to the connection ID
+        clients.Find(x => x.connectionID == connID).playerName = playerName;
 
         // Send his name to all the other players
-        Send("CONN|" + playerName + "|" + connId, reliableChannel, clients);
+        Send("CONN|" + playerName + "|" + connID, reliableChannel, clients);
     }
-    private void OnMyPosition(int connID, float x, float y)
+    private void OnMyPosition(int connID, string[] splitData)
     {
-        print("New X: " + x + " New Y: " + y);
+        // Parse the data from split data
+        float posX = float.Parse(splitData[1]);
+        float posY = float.Parse(splitData[2]);
+        float velX = float.Parse(splitData[3]);
+        float velY = float.Parse(splitData[4]);
+        float rotZ = float.Parse(splitData[5]);
+        float rotW = float.Parse(splitData[6]);
 
-        clients.Find(c => c.connectionID == connID).playerPosition = new Vector2(x, y);
+        // Find the server client
+        ServerClient sc = clients.Find(c => c.connectionID == connID);
+
+        // Update the position, velocity, and rotation we have stored
+        sc.playerPosition = new Vector2(posX, posY);
+        sc.playerVelocity = new Vector2(velX, velY);
+        sc.playerRotation = new Quaternion(0, 0, rotZ, rotW);
     }
 
     private void Send(string message, int channelId, int connId)
