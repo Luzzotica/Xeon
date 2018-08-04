@@ -89,8 +89,11 @@ public class Server : MonoBehaviour
                     case "NAMEIS":
                         OnNameIs(connectionID, splitData[1]);
                         break;
-                    case "MYPOSITION":
+                    case NetworkingConstants.MY_POSITION:
                         OnMyPosition(connectionID, splitData);
+                        break;
+                    case NetworkingConstants.PLAYER_FIRE:
+                        OnPlayerFire(connectionID, splitData);
                         break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
@@ -187,6 +190,14 @@ public class Server : MonoBehaviour
         sc.playerPosition = new Vector2(posX, posY);
         sc.playerVelocity = new Vector2(velX, velY);
         sc.playerRotation = new Quaternion(0, 0, rotZ, rotW);
+    }
+    private void OnPlayerFire(int connID, string[] splitData)
+    {
+        // DATA STRUCTURE: bulletID%posX%poxY%rotDegree
+        string message = NetworkingConstants.PLAYER_FIRE + "|" + connID + "|" + splitData[1];
+
+        // Send the message to all the clients
+        Send(message, reliableChannel, clients);
     }
 
     private void Send(string message, int channelId, int connId)

@@ -884,6 +884,7 @@ GameObject:
   m_Component:
   - component: {fileID: 990242041}
   - component: {fileID: 990242042}
+  - component: {fileID: 990242043}
   m_Layer: 0
   m_Name: Client
   m_TagString: Untagged
@@ -915,7 +916,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ef0c8bb3c3e547eba44a46de885b692, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &990242043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 990242040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0499dcb52b5a45c3bf6fdd3956f9870, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
   playerPrefab: {fileID: 1222939684256256, guid: 1e8cb739131f2408fb6a41bc50b34679,
+    type: 2}
+  genericBullet: {fileID: 1648301389731072, guid: 0ac9b889705ee429bacacd9bc97f8e94,
     type: 2}
 --- !u!1001 &1339975672
 Prefab:

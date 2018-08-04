@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb2d;       //Store a reference to the Rigidbody2D component required to use 2D Physics.
 
     private bool isClient = false;
+    private Client client;
 
     // Use this for initialization
     void Start()
@@ -25,10 +26,13 @@ public class PlayerController : MonoBehaviour
         rb2d = GetComponent<Rigidbody2D>();
     }
 
-    public void setIsClient(bool isClient)
+    public void setIsClient(bool isClient, Client client)
     {
-        // Change the client
+        // Check the client to isClient
         this.isClient = isClient;
+
+        // Save the client passed so we can send it messages
+        this.client = client;
 
         // Get the camera for the player
         playerCamera = Camera.main;
@@ -115,8 +119,8 @@ public class PlayerController : MonoBehaviour
             // Reset fireLast
             fireLast = 0f;
 
-            // Create our bullet
-            GameObject newBullet = Instantiate(bullet, weaponTip.transform.position, weaponTip.transform.rotation);
+            // Tell the server to spawn a bullet
+            client.PlayerFire(PrefabID.genericBulletID, weaponTip.transform.position, weaponTip.transform.rotation);
         }
     }
 

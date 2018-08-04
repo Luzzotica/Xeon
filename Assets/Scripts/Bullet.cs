@@ -7,6 +7,8 @@ public class Bullet : MonoBehaviour
 
     public float bulletSpeed;
 
+    private int playerID;
+
 	// Use this for initialization
 	void Start () 
     {
@@ -18,10 +20,6 @@ public class Bullet : MonoBehaviour
         // Destroy ourselves after a few seconds
         Destroy(this.gameObject, 5.0f);
 	}
-	
-	// Update is called once per frame
-	void Update () 
-    {
-		
-	}
+
+    public void setPlayerID(int ID) { playerID = ID; }
 }

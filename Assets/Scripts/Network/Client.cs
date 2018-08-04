@@ -35,7 +35,6 @@ public class Client : MonoBehaviour
 
     private string playerName;
 
-    public GameObject playerPrefab;
     public Dictionary<int, Player> players = new Dictionary<int, Player>();
 
 	public void Connect()
@@ -108,6 +107,9 @@ public class Client : MonoBehaviour
                     case "ASKPOSITION":
                         OnAskPosition(splitData);
                         break;
+                    case NetworkingConstants.PLAYER_FIRE:
+                        OnPlayerFire(splitData);
+                        break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
                         break;
@@ -178,16 +180,47 @@ public class Client : MonoBehaviour
             Vector2 myVelocity = players[this.clientID].avatar.GetComponent<Rigidbody2D>().velocity;
             Quaternion myRotation = players[this.clientID].avatar.transform.rotation;
             // DATA STRUCTURE: posX|posY|velX|velY|rotZ|rotW
-            string positionM = "MYPOSITION|" + myPosition.x.ToString() + "|" + myPosition.y.ToString() + "|" 
+            string positionM = NetworkingConstants.MY_POSITION + "|" + myPosition.x.ToString() + "|" + myPosition.y.ToString() + "|" 
                                                          + myVelocity.x.ToString() + "|" + myVelocity.y.ToString() + "|"
                                                          + myRotation.z.ToString() + "|" + myRotation.w.ToString();
             Send(positionM, unreliableChannel);
         }
     }
+    private void OnPlayerFire(string[] data)
+    {
+        // DATA STRUCTURE: TAG|connID|bulletID%posX%posY%rotDegree
+        // Parse the data
+        string[] bulletData = data[2].Split('%');
+
+        // Get the position of the bullet
+        Vector3 position = Vector3.zero;
+        position.x = float.Parse(bulletData[1]);
+        position.y = float.Parse(bulletData[2]);
+
+        // Get the rotation of the bullet
+        Quaternion rotation = Quaternion.Euler(0, 0, float.Parse(bulletData[3]));
+
+        // Create the bullet and give it its rotation and position
+        GameObject newBullet = Instantiate(this.GetComponent<SpawnablePrefabs>().getPrefabWithID(bulletData[0]), 
+                                           position, rotation);
+        newBullet.GetComponent<Bullet>().setPlayerID(int.Parse(data[1]));
+
+    }
+
+    public void PlayerFire(string bulletID, Vector2 position, Quaternion rotation)
+    {
+        // Prep the message
+        // DATA STRUCTURE: bulletID%posX%poxY%rotDegree
+        string fireMessage = NetworkingConstants.PLAYER_FIRE + "|" + bulletID + "%" 
+            + position.x.ToString() + "%" + position.y.ToString() + "%"
+                      + rotation.eulerAngles.z.ToString();
+
+        Send(fireMessage, reliableChannel);
+    }
 
     private void SpawnPlayer(string newPlayerName, int connID)
     {
-        GameObject playerObject = Instantiate(playerPrefab) as GameObject;
+        GameObject playerObject = Instantiate(GetComponent<SpawnablePrefabs>().playerPrefab) as GameObject;
 
         // If this is our player
         if (connID == clientID)
@@ -196,7 +229,7 @@ public class Client : MonoBehaviour
             GameObject.Find("Canvas").SetActive(false);
 
             // Add mobility
-            playerObject.GetComponent<PlayerController>().setIsClient(true);
+            playerObject.GetComponent<PlayerController>().setIsClient(true, this);
 
             // Start ourselves
             isStarted = true;
