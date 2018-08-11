@@ -8,5 +8,6 @@ public static class NetworkingConstants
 	// Client Messages
     public const string MY_POSITION = "MYPOSITION";
     public const string PLAYER_FIRE = "PLAYERFIRE";
+    public const string PLAYER_HIT = "PLAYERHIT";
 
 }

@@ -6,5 +6,5 @@ PhysicsMaterial2D:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: FighterPhysics
-  friction: 0.8
-  bounciness: 0
+  friction: 0.1
+  bounciness: 0.05

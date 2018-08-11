@@ -7,10 +7,8 @@ using UnityEngine.UI;
 
 public class Player
 {
+    public PlayerController controller;
     public string playerName;
-    public GameObject avatar;
-    public int connectionID;
-
 }
 
 public class Client : MonoBehaviour 
@@ -51,7 +49,6 @@ public class Client : MonoBehaviour
         // Setup the player name
         playerName = pName;
 
-
         NetworkTransport.Init();
         ConnectionConfig config = new ConnectionConfig();
 
@@ -91,7 +88,7 @@ public class Client : MonoBehaviour
             case NetworkEventType.DataEvent:
                 string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
                 string[] splitData = msg.Split('|');
-                Debug.Log("Recieving: " + msg);
+                //Debug.Log("Recieving: " + msg);
 
                 switch(splitData[0])
                 {
@@ -102,13 +99,16 @@ public class Client : MonoBehaviour
                         SpawnPlayer(splitData[1], int.Parse(splitData[2]));
                         break;
                     case "DC":
-                        PlayerDisconnected(connectionID);
+                        PlayerDisconnected(updateConnectionID);
                         break;
                     case "ASKPOSITION":
                         OnAskPosition(splitData);
                         break;
                     case NetworkingConstants.PLAYER_FIRE:
                         OnPlayerFire(splitData);
+                        break;
+                    case NetworkingConstants.PLAYER_HIT:
+                        OnPlayerHit(updateConnectionID, splitData);
                         break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
@@ -145,8 +145,18 @@ public class Client : MonoBehaviour
             // Data structure: ConnectionID%posX%posY%velX%velY%rotZ%rotW
             string[] playerData = data[i].Split('%');
 
+            // Get the playerConnID from the player data
+            int playerConnID = int.Parse(playerData[0]);
+
+            // Make sure we have spawned in the player first
+            if (!players.ContainsKey(playerConnID))
+            {
+                // If it doesn't contain the key, then go to the next one
+                continue;
+            }
+
             // Prevent the server from updating us
-            if (this.clientID != int.Parse(playerData[0]))
+            if (this.clientID != playerConnID)
             {
                 // Parse through data
                 /// Get position
@@ -165,7 +175,7 @@ public class Client : MonoBehaviour
                 rotation.w = float.Parse(playerData[6]);
 
                 // Update the player avatar with data found
-                GameObject playerAvatar = players[int.Parse(playerData[0])].avatar;
+                GameObject playerAvatar = players[playerConnID].controller.gameObject;
                 playerAvatar.transform.position = position;
                 playerAvatar.transform.rotation = rotation;
                 playerAvatar.GetComponent<Rigidbody2D>().velocity = velocity;
@@ -176,9 +186,9 @@ public class Client : MonoBehaviour
         if (players.ContainsKey(this.clientID))
         {
             // Send our position to the server
-            Vector3 myPosition = players[this.clientID].avatar.transform.position;
-            Vector2 myVelocity = players[this.clientID].avatar.GetComponent<Rigidbody2D>().velocity;
-            Quaternion myRotation = players[this.clientID].avatar.transform.rotation;
+            Vector3 myPosition = players[this.clientID].controller.gameObject.transform.position;
+            Vector2 myVelocity = players[this.clientID].controller.gameObject.GetComponent<Rigidbody2D>().velocity;
+            Quaternion myRotation = players[this.clientID].controller.turret.transform.rotation;
             // DATA STRUCTURE: posX|posY|velX|velY|rotZ|rotW
             string positionM = NetworkingConstants.MY_POSITION + "|" + myPosition.x.ToString() + "|" + myPosition.y.ToString() + "|" 
                                                          + myVelocity.x.ToString() + "|" + myVelocity.y.ToString() + "|"
@@ -201,26 +211,88 @@ public class Client : MonoBehaviour
         Quaternion rotation = Quaternion.Euler(0, 0, float.Parse(bulletData[3]));
 
         // Create the bullet and give it its rotation and position
-        GameObject newBullet = Instantiate(this.GetComponent<SpawnablePrefabs>().getPrefabWithID(bulletData[0]), 
+        GameObject newBullet = Instantiate(this.GetComponent<PrefabConstants>().getPrefabWithID(bulletData[0]), 
                                            position, rotation);
         newBullet.GetComponent<Bullet>().setPlayerID(int.Parse(data[1]));
+
+    }
+    private void OnPlayerHit(int connID, string[] data)
+    {
+        // DATA STRUCTURE: TAG|bulletDamage%targetID
+        // Parse the data
+        string[] hitData = data[1].Split('%');
+
+        // Get the damage to be done
+        float damage = float.Parse(hitData[0]);
+        // Get the targetID
+        int targetID = int.Parse(hitData[1]);
+
+        // Get the Player of the targetID
+        players[targetID].controller.takeDamage(connID, damage);
 
     }
 
     public void PlayerFire(string bulletID, Vector2 position, Quaternion rotation)
     {
         // Prep the message
-        // DATA STRUCTURE: bulletID%posX%poxY%rotDegree
+        // DATA STRUCTURE: PLAYER_FIRE|bulletID%posX%poxY%rotDegree
         string fireMessage = NetworkingConstants.PLAYER_FIRE + "|" + bulletID + "%" 
             + position.x.ToString() + "%" + position.y.ToString() + "%"
                       + rotation.eulerAngles.z.ToString();
 
         Send(fireMessage, reliableChannel);
     }
+    public void PlayerHit(string bulletID, int playerID, int targetID)
+    {
+        // Get the damage based on the bulletID
+        float damage = GetComponent<PrefabConstants>().getDamageWithID(bulletID);
 
+        // Prep the message
+        // DATA STRUCTURE: PLAYER_HIT|bulletDamage%targetID
+
+
+        string hitMessage = NetworkingConstants.PLAYER_HIT + "|" + damage.ToString() + "%" + targetID;
+
+        Send(hitMessage, reliableChannel);
+    }
+    public void PlayerHeal()
+    {
+        
+    }
+
+    private void RespawnPlayer(int connID, string[] data)
+    {
+        // Create a new player prefab
+        GameObject playerObject = Instantiate(GetComponent<PrefabConstants>().playerPrefab) as GameObject;
+
+        // Get the controller component
+        PlayerController playerC = playerObject.GetComponent<PlayerController>();
+
+        // Set the name tag of the new playerObject
+        playerC.setName(players[connID].playerName);
+        // Set the connID of the player controller
+        playerC.setPlayerID(connID);
+
+        // Set the controller of the Player in the dictionary to be this new one
+        players[connID].controller = playerC;
+    }
     private void SpawnPlayer(string newPlayerName, int connID)
     {
-        GameObject playerObject = Instantiate(GetComponent<SpawnablePrefabs>().playerPrefab) as GameObject;
+        // Create a new player prefab
+        GameObject playerAvatar = Instantiate(GetComponent<PrefabConstants>().playerPrefab) as GameObject;
+
+        // Get the controller component
+        PlayerController playerC = playerAvatar.GetComponent<PlayerController>();
+
+        // Set the name of the tag on the controller
+        playerC.setName(newPlayerName);
+        // Set the connID of the player controller
+        playerC.setPlayerID(connID);
+
+        // Create a new Player, and set his properties
+        Player p = new Player();
+        p.playerName = newPlayerName;
+        p.controller = playerC;
 
         // If this is our player
         if (connID == clientID)
@@ -229,24 +301,20 @@ public class Client : MonoBehaviour
             GameObject.Find("Canvas").SetActive(false);
 
             // Add mobility
-            playerObject.GetComponent<PlayerController>().setIsClient(true, this);
+            playerC.setIsClient(true, this);
 
             // Start ourselves
             isStarted = true;
         }
 
-        Player p = new Player();
-        p.avatar = playerObject;
-        p.playerName = newPlayerName;
-        p.connectionID = connID;
+        // Add the Player script to our dictionary
         players.Add(connID, p);
-
     }
 
     private void PlayerDisconnected(int connID)
     {
         // Destroy the player avatar
-        Destroy(players[connID].avatar);
+        Destroy(players[connID].controller.gameObject);
 
         // Remove the player from our dictionary
         players.Remove(connID);
@@ -254,7 +322,7 @@ public class Client : MonoBehaviour
 
     private void Send(string message, int channgelID)
     {
-        Debug.Log("Sending: " + message);
+        //Debug.Log("Sending: " + message);
         byte[] msg = Encoding.Unicode.GetBytes(message);
         NetworkTransport.Send(hostID, connectionID, channgelID, msg, message.Length * sizeof(char), out error);
     }

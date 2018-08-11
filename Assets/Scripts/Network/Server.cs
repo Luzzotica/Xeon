@@ -95,6 +95,9 @@ public class Server : MonoBehaviour
                     case NetworkingConstants.PLAYER_FIRE:
                         OnPlayerFire(connectionID, splitData);
                         break;
+                    case NetworkingConstants.PLAYER_HIT:
+                        OnPlayerHit(connectionID, splitData);
+                        break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
                         break;
@@ -194,10 +197,20 @@ public class Server : MonoBehaviour
     private void OnPlayerFire(int connID, string[] splitData)
     {
         // DATA STRUCTURE: bulletID%posX%poxY%rotDegree
+        // NEW DATASTRUCTE: PLAYER_FIRE|connID|bulletID%posX%poxY%rotDegree
         string message = NetworkingConstants.PLAYER_FIRE + "|" + connID + "|" + splitData[1];
 
         // Send the message to all the clients
         Send(message, reliableChannel, clients);
+    }
+    private void OnPlayerHit(int connID, string[] splitData)
+    {
+        // DATA STRUCTURE: bulletDamage%targetID
+        // NEW DATA STRUCTURE: PLAYER_HIT|bulletDamage%targetID
+        // Prep message
+        string hitMessage = NetworkingConstants.PLAYER_HIT + "|" + splitData[1];
+
+        Send(hitMessage, reliableChannel, clients);
     }
 
     private void Send(string message, int channelId, int connId)
