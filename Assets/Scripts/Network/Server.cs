@@ -11,10 +11,16 @@ public class ServerClient
     public Vector2 playerPosition;
     public Vector2 playerVelocity;
     public Quaternion playerRotation;
+
+    public bool isAlive = false;
 }
 
 public class Server : MonoBehaviour 
 {
+    [Header("Spawn Points")]
+
+    public GameObject spawnPoints;
+
     private const int MAX_CONNECTIONS = 100;
 
     private int port = 5701;
@@ -32,6 +38,11 @@ public class Server : MonoBehaviour
 
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.05f;
+
+    // The ID of the next bullet to spawn
+    private int bulletIDCurrent = 0;
+
+
 
     private void Start()
     {
@@ -86,17 +97,23 @@ public class Server : MonoBehaviour
 
                 switch (splitData[0])
                 {
-                    case "NAMEIS":
+                    case NetworkingConstants.NAME_IS:
                         OnNameIs(connectionID, splitData[1]);
                         break;
                     case NetworkingConstants.MY_POSITION:
                         OnMyPosition(connectionID, splitData);
+                        break;
+                    case NetworkingConstants.PLAYER_ASK_SPAWN:
+                        OnPlayerAskSpawn(connectionID);
                         break;
                     case NetworkingConstants.PLAYER_FIRE:
                         OnPlayerFire(connectionID, splitData);
                         break;
                     case NetworkingConstants.PLAYER_HIT:
                         OnPlayerHit(connectionID, splitData);
+                        break;
+                    case NetworkingConstants.PLAYER_DIED:
+                        OnPlayerDeath(connectionID, splitData);
                         break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
@@ -121,14 +138,23 @@ public class Server : MonoBehaviour
             lastMovementUpdate = Time.time;
 
             // Create a message
-            string positionRequest = "ASKPOSITION|";
+            string positionRequest = NetworkingConstants.ASK_POSITION + "|";
             foreach (ServerClient sc in clients)
             {
-                // DATA STRUCTURE: ConnID%posX%posY%velX%velY%rotZ%rotW
-                positionRequest += sc.connectionID + 
-                                     "%" + sc.playerPosition.x + "%" + sc.playerPosition.y + 
-                                     "%" + sc.playerVelocity.x + "%" + sc.playerVelocity.y +
-                                     "%" + sc.playerRotation.z + "%" + sc.playerRotation.w + "|";
+                // If they are alive, then pass their data
+                if (sc.isAlive)
+                {
+                    // DATA STRUCTURE: ConnID%posX%posY%velX%velY%rotZ%rotW
+                    positionRequest += sc.connectionID +
+                                         "%" + sc.playerPosition.x + "%" + sc.playerPosition.y +
+                                         "%" + sc.playerVelocity.x + "%" + sc.playerVelocity.y +
+                                         "%" + sc.playerRotation.z + "%" + sc.playerRotation.w + "|";
+                }
+                // Otherwise, we don't have an avatar, and want to skip ourselves, no need to send positions
+                else
+                {
+                    continue;
+                }
             }
             positionRequest = positionRequest.Trim('|');
 
@@ -137,28 +163,42 @@ public class Server : MonoBehaviour
         }
     }
 
-    private void OnConnection(int connId)
+    private void OnConnection(int connID)
     {
         // Add him to a list
         ServerClient sc = new ServerClient();
-        sc.connectionID = connId;
+        sc.connectionID = connID;
         sc.playerName = "TEMP";
         clients.Add(sc);
 
         // Tell the player his ID on the server for future communication
         // Request his name and send it to all the other players
-        string msg = "ASKNAME|" + connId + "|";
+        // DATA STRUCTURE: ASKNAME|connID|playerName%playerConnID(%posX%poxY%rotZ%rotW) <-OPTIONAL|playerName%playerConnID%posX%poxY%rotZ%rotW|...
+        string msg = NetworkingConstants.ASK_NAME + "|" + connID + "|";
         foreach (ServerClient client in clients)
         {
-            msg += client.playerName + "%" + client.connectionID + "|";
+            // Get the position and rotation
+            Vector2 playerPos = client.playerPosition;
+            Quaternion playerRot = client.playerRotation;
+
+            // If tthe player isAlive, then pass the data
+            if (client.isAlive)
+            {
+                msg += client.playerName + "%" + client.connectionID + "%" + playerPos.x.ToString() + "%" + playerPos.y.ToString() + 
+                             "%" + playerRot.z.ToString() + "%" + playerRot.w.ToString() + "|";
+            }
+            // Otherwise, that player has no avatar, only pass his name, and connID
+            else
+            {
+                msg += client.playerName + "%" + client.connectionID;
+            }
         }
 
         msg = msg.Trim('|');
 
         // Send a message to the clients
-        Send(msg, reliableChannel, connId);
+        Send(msg, reliableChannel, connID);
     }
-
     private void OnDisconnection(int connID)
     {
         // Remove the player from our client list
@@ -173,44 +213,95 @@ public class Server : MonoBehaviour
         // Link the name to the connection ID
         clients.Find(x => x.connectionID == connID).playerName = playerName;
 
-        // Send his name to all the other players
-        Send("CONN|" + playerName + "|" + connID, reliableChannel, clients);
+        // Get a random spawn point
+        //Vector3 randomSpawn = spawnPoints.GetComponent<SpawnPoints>().getRandomPoint();
+
+        // DATA STRUCTURE: TAG|newPlayerName%connID
+        // Send his name to all the other players, they will use this to spawn him
+        Send(NetworkingConstants.CONNECTION + "|" + playerName + "%" + connID, reliableChannel, clients);
     }
     private void OnMyPosition(int connID, string[] splitData)
     {
-        // Parse the data from split data
-        float posX = float.Parse(splitData[1]);
-        float posY = float.Parse(splitData[2]);
-        float velX = float.Parse(splitData[3]);
-        float velY = float.Parse(splitData[4]);
-        float rotZ = float.Parse(splitData[5]);
-        float rotW = float.Parse(splitData[6]);
+        // Check if the split data size is greater than 2
+        if (splitData.Length > 2)
+        {
+            // Parse the data from split data
+            float posX = float.Parse(splitData[1]);
+            float posY = float.Parse(splitData[2]);
+            float velX = float.Parse(splitData[3]);
+            float velY = float.Parse(splitData[4]);
+            float rotZ = float.Parse(splitData[5]);
+            float rotW = float.Parse(splitData[6]);
 
-        // Find the server client
-        ServerClient sc = clients.Find(c => c.connectionID == connID);
+            // Find the server client
+            ServerClient sc = clients.Find(c => c.connectionID == connID);
 
-        // Update the position, velocity, and rotation we have stored
-        sc.playerPosition = new Vector2(posX, posY);
-        sc.playerVelocity = new Vector2(velX, velY);
-        sc.playerRotation = new Quaternion(0, 0, rotZ, rotW);
+            // If we have data, then the player is alive
+            sc.isAlive = true;
+
+            // Update the position, velocity, and rotation we have stored
+            sc.playerPosition = new Vector2(posX, posY);
+            sc.playerVelocity = new Vector2(velX, velY);
+            sc.playerRotation = new Quaternion(0, 0, rotZ, rotW);
+        }
+        // Otherwise, the player has no avatar, set position, velocity and rotation to null
+        else
+        {
+            // Find the server client
+            ServerClient sc = clients.Find(c => c.connectionID == connID);
+
+            // If we don't have data, then the player is not alive
+            sc.isAlive = false;
+
+            // Don't update positions, no need
+        }
+
     }
     private void OnPlayerFire(int connID, string[] splitData)
     {
         // DATA STRUCTURE: bulletID%posX%poxY%rotDegree
-        // NEW DATASTRUCTE: PLAYER_FIRE|connID|bulletID%posX%poxY%rotDegree
-        string message = NetworkingConstants.PLAYER_FIRE + "|" + connID + "|" + splitData[1];
+        // NEW DATASTRUCTE: PLAYER_FIRE|connID|bulletServerID%bulletID%posX%poxY%rotDegree
+        string message = NetworkingConstants.PLAYER_FIRE + "|" + connID + "|" + bulletIDCurrent + "%" + splitData[1];
+
+        // Increment the bulletIDCurrent so that each bullet has a different ID
+        bulletIDCurrent++;
+        // Make it loop at 100000 bullets, hope there won't be more than 100000 bullets in the map at any given moment
+        bulletIDCurrent %= 100000;
 
         // Send the message to all the clients
         Send(message, reliableChannel, clients);
     }
     private void OnPlayerHit(int connID, string[] splitData)
     {
-        // DATA STRUCTURE: bulletDamage%targetID
-        // NEW DATA STRUCTURE: PLAYER_HIT|bulletDamage%targetID
+        // DATA STRUCTURE: bulletServerID%bulletDamage%targetID
+        // NEW DATA STRUCTURE: PLAYER_HIT|attackerID%bulletServerID%bulletDamage%targetID
         // Prep message
-        string hitMessage = NetworkingConstants.PLAYER_HIT + "|" + splitData[1];
+        string hitMessage = NetworkingConstants.PLAYER_HIT + "|" + connID.ToString( ) + "%" + splitData[1];
 
         Send(hitMessage, reliableChannel, clients);
+    }
+    private void OnPlayerDeath(int connID, string[] splitData)
+    {
+        // DATA STRUCTURE: PLAYERDEATH|killerID
+        // NEW DATA STRUCTURE: PLAYERDEATH|killerID%connID
+        // Prep message
+        string deathMessage = NetworkingConstants.PLAYER_DIED + "|" + splitData[1] + "%" + connID.ToString();
+
+        // Send reliably to everyone
+        Send(deathMessage, reliableChannel, clients);
+    }
+    private void OnPlayerAskSpawn(int connID)
+    {
+        // NEW DATA STRUCTURE: TAG|connID%posX%posY
+
+        // Get a random spawn point
+        Vector3 randomSpawn = spawnPoints.GetComponent<SpawnPoints>().getRandomPoint();
+
+        // Prep the message
+        string spawnM = NetworkingConstants.SPAWN_PLAYER + "|" + connID.ToString() + "%" + randomSpawn.x.ToString() + "%" + randomSpawn.y.ToString();
+
+        // Send Reliably to all clients
+        Send(spawnM, reliableChannel, clients);
     }
 
     private void Send(string message, int channelId, int connId)
@@ -219,6 +310,7 @@ public class Server : MonoBehaviour
         c.Add(clients.Find(x => x.connectionID == connId));
         Send(message, channelId, c);
     }
+
 
     private void Send(string message, int channgelId, List<ServerClient> c)
     {

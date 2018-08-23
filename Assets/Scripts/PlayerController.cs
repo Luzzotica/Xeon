@@ -6,10 +6,18 @@ public class PlayerController : MonoBehaviour
 {
     private Camera playerCamera;
 
+    [Header("Weapon")]
+
     public GameObject weaponTip;
     public GameObject bullet;
     public GameObject turret;
+
+    [Header("Name Tag")]
+
     public Text nameTag;
+
+    private GUIManager guiManager;
+    private Image healthBar;
 
     #region Xeon Properties
 
@@ -23,15 +31,29 @@ public class PlayerController : MonoBehaviour
     private float healthMax = 100.0f;
     private float health = 100.0f;
 
-    #endregion
+    // Position LERP
+    private Vector3 oldPosition = Vector3.zero;
+    private Vector3 newPosition = Vector3.zero;
+    private float positionLerpT = 0.2f;
+    private float positionLerpSpeed = 0.2f;
 
-    private Vector3 cameraOffset;
+    // Rotation LERP
+    private Quaternion oldRotation = Quaternion.identity;
+    private Quaternion newRotation = Quaternion.identity;
+    private float rotationLerpT = 0.075f;
+    private float rotationLerpSpeed = 0.07f;
+    //private float rotationSpeedPerAngle = 200.0f;
+
+    // Offset of the camera to add when you move the camera to the player
+    private Vector3 cameraOffset = new Vector3(0, 0, -10);
 
     private Rigidbody2D rb2d;       //Store a reference to the Rigidbody2D component required to use 2D Physics.
 
     private bool isClient = false;
     private Client client;
     private int connectionID;
+
+    #endregion
 
     // Use this for initialization
     void Start()
@@ -40,12 +62,50 @@ public class PlayerController : MonoBehaviour
         rb2d = GetComponent<Rigidbody2D>();
     }
 
-    #region 
+    #region Physical Updates
+
+    public void setNewPositionAndRotation(Vector3 newPosition, Quaternion newRotation)
+    {
+        setNewPosition(newPosition);
+        setNewRotation(newRotation);
+    }
+    public void setNewPosition(Vector3 newPosition)
+    {
+        // Old position is where we are now
+        oldPosition = transform.position;
+
+        // New position is where we want to lerp to
+        this.newPosition = newPosition;
+
+        // Set the lerp T to 0 so we start lerping!
+        positionLerpT = 0f;
+    }
+    public void setNewRotation(Quaternion newRotation)
+    {
+        // Old rotation is where we are now
+        oldRotation = turret.transform.rotation;
+
+        // New rotation is where we want to get to
+        this.newRotation = newRotation;
+
+        // Set the lerp T to 0 so it starts lerping from the beginning
+        rotationLerpT = 0.0f;
+
+        // Get angle difference
+        //float angleDifference = Mathf.Abs(oldRotation.eulerAngles.z - newRotation.eulerAngles.z);
+
+        // Set the lerp speed to be the angle difference divided by how fast we should lerp through those angles
+        //rotationLerpSpeed = angleDifference / rotationSpeedPerAngle;
+    }
+
 
     public void heal(float amount)
     {
         // Add amount to health
         health += amount;
+
+        // Update the health bar
+        updateHealthBar();
 
         // Clamp it down if it went over the max
         if (health > healthMax) { health = healthMax; }
@@ -53,10 +113,11 @@ public class PlayerController : MonoBehaviour
 
     public void takeDamage(int attackerID, float amount)
     {
-        Debug.Log(nameTag.text + " taking " + amount.ToString() + " damage from player " + attackerID);
-
         // Subtract amount from health
         health -= amount;
+
+        // Update the health bar
+        updateHealthBar();
 
         // If health is less than or equal to 0
         if (health <= 0)
@@ -71,15 +132,40 @@ public class PlayerController : MonoBehaviour
 
     public void death(int killerID)
     {
-        // Player a death animation
+        // TODO, Player death animation
 
 
         // Destroy this gameObject
         Destroy(gameObject);
 
-        // Tell the server that we died
+        // If we are the client and the killerID isn't bogus
+        if (isClient && killerID != -1)
+        {
+            // Tell the server that we died
+            client.PlayerDied(killerID.ToString());
 
+            // Tell the gui that we died
+            guiManager.playerDied();
+        }
+    }
 
+    public void updateHealthBar()
+    {
+        // If we are not the cient, don't update the health bar, no need
+        if (!isClient)
+        {
+            return;
+        }
+
+        // Make sure we have pointers to the HUD health components
+
+        // Get the current percentage of health
+        float healthPercent = health / healthMax;
+
+        // Clamp the percent between 0 and 1
+        Mathf.Clamp(healthPercent, 0f, 1f);
+
+        guiManager.setHealth(healthPercent);
     }
 
     #endregion
@@ -98,7 +184,16 @@ public class PlayerController : MonoBehaviour
         playerCamera = Camera.main;
 
         // Start the camera with an initial offset
-        cameraOffset = playerCamera.transform.position;
+        //cameraOffset = Vector3.zero; //playerCamera.transform.position;
+
+        // Get the player HUD
+        this.guiManager = client.guiManager;
+
+        // Tell the gui we have been spawned
+        guiManager.playerSpawned();
+
+        // Make sure the health bar is visually correct
+        updateHealthBar();
     }
 
     public void setPlayerID(int id) { connectionID = id;}
@@ -122,6 +217,10 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // Heal
+        //heal(0.5f);
+
+
         // Handle camera movement
         handleCamera();
     }
@@ -132,6 +231,8 @@ public class PlayerController : MonoBehaviour
         // If we are not the client, stop
         if (!isClient)
         {
+            // Handle a lerping (Smooth) rotation
+            handleRotationLerp();
             return;
         }
 
@@ -149,17 +250,45 @@ public class PlayerController : MonoBehaviour
 
     #endregion
 
-    #region Getters
-
-    public int getPlayerConnID() { return connectionID; }
-
-    #endregion
-
     #region Player Handlers
 
     private void handleCamera()
     {
         playerCamera.transform.position = transform.position + cameraOffset;
+    }
+
+    private void handlePositionLerp()
+    {
+        // Increment our T with delta time
+        positionLerpT += Time.deltaTime;
+
+        // If lerp t is less than the lerp speed, we want to keep lerping
+        if (positionLerpT <= positionLerpSpeed)
+        {
+            // Get the progress
+            float progress = positionLerpT / positionLerpSpeed;
+
+            // Lerp based on progress
+            transform.position = Vector3.Lerp(oldPosition, newPosition, progress);
+        }
+    }
+    private void handleRotationLerp()
+    {
+        // Add deltaTime to our rotation lerp t
+        rotationLerpT += Time.deltaTime;
+
+        // If lerp t is less than lerp speed
+        if (rotationLerpT <= rotationLerpSpeed)
+        {
+            // Get progress
+            float progress = rotationLerpT / rotationLerpSpeed;
+
+            // Set the lerp!
+            turret.transform.rotation = Quaternion.Lerp(oldRotation, newRotation, progress);
+
+        }
+        // Otherwise we stop, we have lerped all the way!
+
     }
 
     private void handleRotation()
@@ -200,15 +329,23 @@ public class PlayerController : MonoBehaviour
             // Reset fireLast
             fireLast = 0f;
 
+            //takeDamage(0, 15f);
+
             // Calculate the our position with current velocity
             Vector3 position = weaponTip.transform.position;
-            position.x += rb2d.velocity.x / 23.0f;
-            position.y += rb2d.velocity.y / 23.0f;
+            position.x += rb2d.velocity.x / 24.0f;
+            position.y += rb2d.velocity.y / 24.0f;
 
             // Tell the server to spawn a bullet
             client.PlayerFire(PrefabID.genericBulletID, position, weaponTip.transform.rotation);
         }
     }
+
+    #endregion
+
+    #region Getters
+
+    public int getPlayerConnID() { return connectionID; }
 
     #endregion
 }
