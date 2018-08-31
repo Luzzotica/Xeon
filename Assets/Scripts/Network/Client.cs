@@ -52,6 +52,13 @@ public class Client : MonoBehaviour
             Debug.Log("You must have a name!");
             return;
         }
+        string ip_address = GameObject.Find("IP_Input").GetComponent<InputField>().text;
+        if (ip_address == "")
+        {
+            // If he doesn't, stop
+            Debug.Log("You must have an IP address!");
+            return;
+        }
 
         // Setup the player name
         playerName = pName;
@@ -68,7 +75,7 @@ public class Client : MonoBehaviour
 
         // Add hostID
         hostID = NetworkTransport.AddHost(topo, clientPort);
-        connectionID = NetworkTransport.Connect(hostID, "10.37.20.73", serverPort, 0, out error);
+        connectionID = NetworkTransport.Connect(hostID, ip_address, serverPort, 0, out error);
 
         // Start the server
         connectionTime = Time.time;
