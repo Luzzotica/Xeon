@@ -42,10 +42,10 @@ public class Server : MonoBehaviour
     // The ID of the next bullet to spawn
     private int bulletIDCurrent = 0;
 
-
-
     private void Start()
     {
+        Debug.Log("Starting Server");
+
         NetworkTransport.Init();
         ConnectionConfig config = new ConnectionConfig();
 

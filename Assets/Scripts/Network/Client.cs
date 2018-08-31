@@ -18,7 +18,8 @@ public class Client : MonoBehaviour
 
     private const int MAX_CONNECTIONS = 100;
 
-    private int port = 5701;
+    private int clientPort = 5700;
+    private int serverPort = 5701;
 
     private int hostID;
     private int webHostID;
@@ -73,8 +74,8 @@ public class Client : MonoBehaviour
         HostTopology topo = new HostTopology(config, MAX_CONNECTIONS);
 
         // Add hostID
-        hostID = NetworkTransport.AddHost(topo, 0);
-        connectionID = NetworkTransport.Connect(hostID, ip_address, port, 0, out error);
+        hostID = NetworkTransport.AddHost(topo, clientPort);
+        connectionID = NetworkTransport.Connect(hostID, ip_address, serverPort, 0, out error);
 
         // Start the server
         connectionTime = Time.time;
