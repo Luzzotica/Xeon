@@ -285,7 +285,7 @@ GameObject:
   - component: {fileID: 301167431}
   - component: {fileID: 301167430}
   m_Layer: 5
-  m_Name: ID_Input
+  m_Name: IP_Input
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1280,9 +1280,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 016b327e2057b45928464962ae6a3154, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  port: 4000
-  lastReceivedUDPPacket: 
-  allReceivedUDPPackets: 
 --- !u!1 &1128596287
 GameObject:
   m_ObjectHideFlags: 0
@@ -1521,11 +1518,11 @@ Prefab:
     m_Modifications:
     - target: {fileID: 4092657996902404, guid: 04201978f44bf4d4192da0fb05feb75c, type: 2}
       propertyPath: m_LocalPosition.x
-      value: -0.1
+      value: 0.4
       objectReference: {fileID: 0}
     - target: {fileID: 4092657996902404, guid: 04201978f44bf4d4192da0fb05feb75c, type: 2}
       propertyPath: m_LocalPosition.y
-      value: 2.46
+      value: 3.5
       objectReference: {fileID: 0}
     - target: {fileID: 4092657996902404, guid: 04201978f44bf4d4192da0fb05feb75c, type: 2}
       propertyPath: m_LocalPosition.z
