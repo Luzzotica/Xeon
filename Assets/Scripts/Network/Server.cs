@@ -134,6 +134,9 @@ public class Server : MonoBehaviour
                     case NetworkingConstants.PLAYER_DIED:
                         OnPlayerDeath(connectionID, splitData);
                         break;
+                    case NetworkingConstants.PLAYER_SEND_MESSAGE:
+                        OnPlayerMessage(connectionID, splitData[1]);
+                        break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
                         break;
@@ -322,6 +325,14 @@ public class Server : MonoBehaviour
 
         // Send Reliably to all clients
         Send(spawnM, reliableChannel, clients);
+    }
+    private void OnPlayerMessage(int connID, string message)
+    {
+        // NEW DATA STRUCTURE: TAG|connID|message
+        string pMessage = NetworkingConstants.PLAYER_SEND_MESSAGE + "|" + connID.ToString() + "|" + message;
+
+        // Send the message reliably
+        Send(pMessage, reliableChannel, clients);
     }
 
     private void SendToPlayerDebug(string message)

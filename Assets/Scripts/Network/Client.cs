@@ -134,6 +134,9 @@ public class Client : MonoBehaviour
                     case NetworkingConstants.PLAYER_DIED:
                         OnPlayerDeath(splitData);
                         break;
+                    case NetworkingConstants.PLAYER_SEND_MESSAGE:
+                        OnPlayerMessage(splitData);
+                        break;
                     case NetworkingConstants.DEBUG:
                         Debug.Log("Recieving: " + msg.Split('|')[1]);
                         break;
@@ -354,6 +357,18 @@ public class Client : MonoBehaviour
         // Send a message saying that the killer killed the killee
         gameManager.GetComponent<MessageManager>().SendDeathMessageToChat(killerName, didDiedName);
     }
+    private void OnPlayerMessage(string[] data)
+    {
+        // NEW DATA STRUCTURE: TAG|connID|message
+        // Get the player name
+        string pName = players[int.Parse(data[1])].playerName;
+
+        // Prep the message
+        string message = pName + ": " + data[2];
+
+        // Send the message to the chat box
+        gameManager.GetComponent<MessageManager>().SendMessageToChat(message, Message.MessageType.playerMessage);
+    }
 
     #endregion
 
@@ -410,7 +425,7 @@ public class Client : MonoBehaviour
     {
         // Prep the message
         // DATA STRUCTURE: TAG|Message
-        string m = NetworkingConstants.PLAYER_SEND_MESSAGE + "|" + "message";
+        string m = NetworkingConstants.PLAYER_SEND_MESSAGE + "|" + message;
 
         // Send the message to the server
         Send(m, reliableChannel);

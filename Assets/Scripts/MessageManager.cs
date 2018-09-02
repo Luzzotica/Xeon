@@ -27,7 +27,8 @@ public class MessageManager : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Return))
             {
                 // Send the message!
-                SendMessageToChat(chatBox.text, Message.MessageType.playerMessage);
+                //SendMessageToChat(chatBox.text, Message.MessageType.playerMessage);
+                client.GetComponent<Client>().PlayerSendMessage(chatBox.text);
 
                 chatBox.text = "";
 
