@@ -21,6 +21,9 @@ public static class NetworkingConstants
     public const string PLAYER_ASK_SPAWN = "PLAYERASKSPAWN";
     public const string LOAD_MAP = "LOADMAP";
 
+    // MISC
+    public const string DEBUG = "DEBUG";
+
 }
 
 public static class GuiScreens

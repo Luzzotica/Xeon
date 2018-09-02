@@ -112,7 +112,7 @@ public class Server : MonoBehaviour
                 
                 string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
                 string[] splitData = msg.Split('|');
-                Debug.Log("Recieving: " + msg);
+                //Debug.Log("Recieving: " + msg);
 
                 switch (splitData[0])
                 {
@@ -289,6 +289,7 @@ public class Server : MonoBehaviour
 
         // Send the message to all the clients
         Send(message, reliableChannel, clients);
+        SendToPlayerDebug(NetworkingConstants.DEBUG + "|" + "Bullet fired!!");
     }
     private void OnPlayerHit(int connID, string[] splitData)
     {
@@ -321,6 +322,11 @@ public class Server : MonoBehaviour
 
         // Send Reliably to all clients
         Send(spawnM, reliableChannel, clients);
+    }
+
+    private void SendToPlayerDebug(string message)
+    {
+        Send(message, reliableChannel, clients);
     }
 
     private void Send(string message, int channelId, int connId)

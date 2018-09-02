@@ -105,7 +105,7 @@ public class Client : MonoBehaviour
             case NetworkEventType.DataEvent:
                 string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
                 string[] splitData = msg.Split('|');
-                Debug.Log("Recieving: " + msg);
+                
 
                 switch(splitData[0])
                 {
@@ -133,6 +133,9 @@ public class Client : MonoBehaviour
                         break;
                     case NetworkingConstants.PLAYER_DIED:
                         OnPlayerDeath(splitData);
+                        break;
+                    case NetworkingConstants.DEBUG:
+                        Debug.Log("Recieving: " + msg.Split('|')[1]);
                         break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
@@ -515,7 +518,7 @@ public class Client : MonoBehaviour
 
     private void Send(string message, int channgelID)
     {
-        Debug.Log("Sending: " + message);
+        //Debug.Log("Sending: " + message);
         byte[] msg = Encoding.Unicode.GetBytes(message);
         NetworkTransport.Send(hostID, connectionID, channgelID, msg, message.Length * sizeof(char), out error);
     }
