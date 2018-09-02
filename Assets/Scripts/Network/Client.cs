@@ -295,7 +295,8 @@ public class Client : MonoBehaviour
         // Get the targetID
         int targetID = int.Parse(hitData[3]);
 
-        Debug.Log(players[targetID].playerName + " took " + damage.ToString() + " damage from player " + players[attackerID].playerName);
+        string damageText = attackerID.ToString() + " hit " + targetID.ToString();
+        gameManager.GetComponent<MessageManager>().SendMessageToChat(damageText, Message.MessageType.alert);
 
         // Get the controller
         PlayerController playerC = players[targetID].controller;
@@ -324,9 +325,11 @@ public class Client : MonoBehaviour
     }
     private void OnPlayerDeath(string[] data)
     {
-        // DATA STRUCTURE: PLAYERDEATH|killerID%connectionID
+        // NEW DATA STRUCTURE: PLAYERDEATH|killerID%didDiedID
         // Get the killerID and connID
         string[] deathData = data[1].Split('%');
+
+
 
         // Get the name of the killer and the connectionID
         string killerName = players[int.Parse(deathData[0])].playerName;
@@ -342,9 +345,8 @@ public class Client : MonoBehaviour
             players[int.Parse(deathData[1])].controller.death(-1);
         }
 
-
         // Send a message saying that the killer killed the killee
-
+        gameManager.GetComponent<MessageManager>().SendDeathMessageToChat(killerName, didDiedName);
     }
 
     #endregion
@@ -376,9 +378,11 @@ public class Client : MonoBehaviour
     }
     public void PlayerDied(string killerID)
     {
+        gameManager.GetComponent<MessageManager>().SendMessageToChat(killerID + " died", Message.MessageType.alert);
+
         // Prep the message
         // DATA STRUCTURE: PLAYERDIED|killerID
-        string deathMessage = NetworkingConstants.PLAYER_DIED + "|" + clientID.ToString() + "|" + killerID;
+        string deathMessage = NetworkingConstants.PLAYER_DIED + "|" + killerID;
 
         // Send reliably
         Send(deathMessage, reliableChannel);
@@ -395,6 +399,15 @@ public class Client : MonoBehaviour
 
         // Send reliably
         Send(spawnM, reliableChannel);
+    }
+    public void PlayerSendMessage(string message)
+    {
+        // Prep the message
+        // DATA STRUCTURE: TAG|Message
+        string m = NetworkingConstants.PLAYER_SEND_MESSAGE + "|" + "message";
+
+        // Send the message to the server
+        Send(m, reliableChannel);
     }
 
     #endregion
