@@ -48,9 +48,12 @@ public class Client : MonoBehaviour
         string pName = GameObject.Find("NameInput").GetComponent<InputField>().text;
         if (pName == "")
         {
+            /*
             // If he doesn't, stop
             Debug.Log("You must have a name!");
             return;
+            */
+            pName = "Guest";
         }
         string ip_address = GameObject.Find("IP_Input").GetComponent<InputField>().text;
         if (ip_address == "")
@@ -102,7 +105,7 @@ public class Client : MonoBehaviour
             case NetworkEventType.DataEvent:
                 string msg = Encoding.Unicode.GetString(recBuffer, 0, dataSize);
                 string[] splitData = msg.Split('|');
-                Debug.Log("Recieving: " + msg);
+                
 
                 switch(splitData[0])
                 {
@@ -130,6 +133,9 @@ public class Client : MonoBehaviour
                         break;
                     case NetworkingConstants.PLAYER_DIED:
                         OnPlayerDeath(splitData);
+                        break;
+                    case NetworkingConstants.DEBUG:
+                        Debug.Log("Recieving: " + msg.Split('|')[1]);
                         break;
                     default:
                         Debug.Log("Invalid Message: " + msg);
@@ -295,8 +301,8 @@ public class Client : MonoBehaviour
         // Get the targetID
         int targetID = int.Parse(hitData[3]);
 
-        string damageText = attackerID.ToString() + " hit " + targetID.ToString();
-        gameManager.GetComponent<MessageManager>().SendMessageToChat(damageText, Message.MessageType.alert);
+        //string damageText = attackerID.ToString() + " hit " + targetID.ToString();
+        //gameManager.GetComponent<MessageManager>().SendMessageToChat(damageText, Message.MessageType.alert);
 
         // Get the controller
         PlayerController playerC = players[targetID].controller;
@@ -378,7 +384,7 @@ public class Client : MonoBehaviour
     }
     public void PlayerDied(string killerID)
     {
-        gameManager.GetComponent<MessageManager>().SendMessageToChat(killerID + " died", Message.MessageType.alert);
+        //gameManager.GetComponent<MessageManager>().SendMessageToChat(killerID + " died", Message.MessageType.alert);
 
         // Prep the message
         // DATA STRUCTURE: PLAYERDIED|killerID
@@ -525,7 +531,7 @@ public class Client : MonoBehaviour
 
     private void Send(string message, int channgelID)
     {
-        Debug.Log("Sending: " + message);
+        //Debug.Log("Sending: " + message);
         byte[] msg = Encoding.Unicode.GetBytes(message);
         NetworkTransport.Send(hostID, connectionID, channgelID, msg, message.Length * sizeof(char), out error);
     }

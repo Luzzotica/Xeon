@@ -86,7 +86,15 @@ public class Bullet : MonoBehaviour
 
     }
 
-    public void setPlayerID(int ID) { playerConnID = ID; print("Owner ID: " + ID); }
-    public void setIsClient(bool isClient) { this.isClient = isClient; print(isClient); }
+    public void setPlayerID(int ID)
+    {
+        playerConnID = ID;
+        //print("Owner ID: " + ID);
+    }
+    public void setIsClient(bool isClient)
+    {
+        this.isClient = isClient;
+        //print(isClient);
+    }
     public void setServerID(int ID) { bulletServerID = ID; }
 }

@@ -1038,6 +1038,7 @@ GameObject:
   - component: {fileID: 749743926}
   - component: {fileID: 749743927}
   - component: {fileID: 749743928}
+  - component: {fileID: 749743929}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1090,6 +1091,17 @@ MonoBehaviour:
   info: {r: 0, g: 0.049153328, b: 1, a: 1}
   alert: {r: 1, g: 0, b: 0, a: 1}
   serverMessage: {r: 0.027350426, g: 1, b: 0, a: 1}
+--- !u!114 &749743929
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 749743925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4ba490e52db67c439b3aa48d59c9564, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &750697230
 Prefab:
   m_ObjectHideFlags: 0
@@ -1533,7 +1545,6 @@ GameObject:
   - component: {fileID: 990242041}
   - component: {fileID: 990242042}
   - component: {fileID: 990242043}
-  - component: {fileID: 990242044}
   m_Layer: 0
   m_Name: Client
   m_TagString: Untagged
@@ -1583,17 +1594,6 @@ MonoBehaviour:
   genericBullet: {fileID: 1648301389731072, guid: 0ac9b889705ee429bacacd9bc97f8e94,
     type: 2}
   genericBulletDamage: 10
---- !u!114 &990242044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 990242040}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 016b327e2057b45928464962ae6a3154, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1128596287
 GameObject:
   m_ObjectHideFlags: 0
