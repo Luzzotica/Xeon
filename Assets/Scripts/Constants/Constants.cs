@@ -19,6 +19,7 @@ public static class NetworkingConstants
     public const string PLAYER_HIT = "PLAYERHIT";
     public const string PLAYER_DIED = "PLAYERDIED";
     public const string PLAYER_ASK_SPAWN = "PLAYERASKSPAWN";
+    public const string LOAD_MAP = "LOADMAP";
 
 }
 

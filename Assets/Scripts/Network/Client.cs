@@ -48,9 +48,12 @@ public class Client : MonoBehaviour
         string pName = GameObject.Find("NameInput").GetComponent<InputField>().text;
         if (pName == "")
         {
+            /*
             // If he doesn't, stop
             Debug.Log("You must have a name!");
             return;
+            */
+            pName = "Guest";
         }
         string ip_address = GameObject.Find("IP_Input").GetComponent<InputField>().text;
         if (ip_address == "")

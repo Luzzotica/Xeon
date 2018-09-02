@@ -17,10 +17,15 @@ public class ServerClient
 
 public class Server : MonoBehaviour 
 {
-    [Header("Spawn Points")]
+    [Header("Game Variables")]
 
     public GameObject spawnPoints;
+    private bool game_started = false;
 
+    MapManager map_manager;
+
+
+    [Header("Networking Variables")]
     private const int MAX_CONNECTIONS = 100;
 
     private int port = 5701;
@@ -38,6 +43,8 @@ public class Server : MonoBehaviour
 
     private float lastMovementUpdate;
     private float movementUpdateRate = 0.05f;
+
+
 
     // The ID of the next bullet to spawn
     private int bulletIDCurrent = 0;
@@ -62,6 +69,18 @@ public class Server : MonoBehaviour
 
         // Start the server
         isStarted = true;
+
+
+        //Game start!
+
+        // The game hasn't started yet, start it!
+        game_started = false;
+
+        Debug.Log("Sending load map command..");
+        map_manager = GetComponent<MapManager>();
+        string map_to_load = map_manager.StartMap();
+        string message = NetworkingConstants.LOAD_MAP + "|" + map_to_load;
+        Send(message, reliableChannel, clients);
     }
 
     private void Update()
